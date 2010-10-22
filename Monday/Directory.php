@@ -169,14 +169,14 @@ class Monday_Directory implements Iterator, Countable
 			else {
 				if (@unlink($file_path) === false) {
 					require_once 'Monday/Directory/Exception.php';
-					throw new Monday_Directory_Exception('Kunde inte ta bort fil "' . $file . '"');
+					throw new Monday_Directory_Exception('Couldn\'t remove file "' . $file . '"');
 				}
 			}
 		}
 
 		if (@rmdir($path) === false) {
 			require_once 'Monday/Directory/Exception.php';
-			throw new Monday_Directory_Exception('Kunde inte ta bort katalog "' . $file . '"');
+			throw new Monday_Directory_Exception('Couldn\'t remove directory "' . $file . '"');
 		}
 	}
 }
