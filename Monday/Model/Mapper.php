@@ -1,9 +1,11 @@
 <?php
 
-class Monday_Model_Mapper
+class Monday_Model_Mapper implements Zend_Acl_Resource_Interface
 {
 	protected $_modelName;
 	protected $_table;
+	protected $_aclResourceId;
+	private static $_acl;
 	
 	// TODO: Hårdkodade fält som *måste* vara satta vid save()
 	protected $_fieldsRequired = array();
@@ -11,6 +13,10 @@ class Monday_Model_Mapper
 	public function __construct()
 	{
 		$this->_init();
+
+		if (($acl = self::getAcl()) !== null) {
+			$this->_setupAcl($acl);
+		}
 	}
 	
 	public function __call($function, $args)
@@ -31,6 +37,30 @@ class Monday_Model_Mapper
 		// Implementeras av subklass
 	}
 	
+	public static function setAcl(Zend_Acl $acl)
+	{
+		self::$_acl = $acl;
+	}
+
+	public static function getAcl()
+	{
+		return self::$_acl;
+	}
+
+	protected function _setupAcl(Zend_Acl $acl)
+	{
+		// Implementera av subklass, ställer in rättigheter helt enkelt.
+		// Cacha? most likely, men inget krav
+	}
+
+	public function getResourceId()
+    {
+		if (empty($this->_aclResourceId)) {
+			throw new Monday_Exception('ACL not implemented for mapper');
+		}
+        return $this->_aclResourceId;
+    }
+
 	protected function _fetchSpecificField($field, $args)
 	{
 		$rows = $this->getTable()
@@ -40,7 +70,8 @@ class Monday_Model_Mapper
 		
 		if (!empty($rows)) {
 			foreach ($rows as $row) {
-				$primary = array_pop($this->getTable()->getPrimary());
+				$primary = $this->getTable()->getPrimary();
+				$primary = array_pop($primary);
 				$id = $row[$primary];
 				$models[] = $this->load($id);
 			}
@@ -101,7 +132,7 @@ class Monday_Model_Mapper
 		}
 		
 		$this->_afterCreate($model);
-		
+
 		return $model;
 	}
 	
@@ -165,7 +196,7 @@ class Monday_Model_Mapper
 		$table = $this->getTable();
 		
 		$info = $table->info();
-		$primaryGetter = 'get' . Monday_Model::fieldToFunction(reset($info['primary']));
+		$primaryGetter = 'get' . Monday_Model::fieldToFunction(reset($info['primary']), false);
 
 		try {
 			$row = $table->find($model->$primaryGetter())
@@ -192,7 +223,7 @@ class Monday_Model_Mapper
 			}
 			
 			$id = $table->insert($values);
-			$primarySetter = 'set' . Monday_Model::fieldToFunction(reset($info['primary']));
+			$primarySetter = 'set' . Monday_Model::fieldToFunction(reset($info['primary']), false);
 			$model->$primarySetter($id);
 		}
 		
@@ -230,7 +261,7 @@ class Monday_Model_Mapper
 		}
 		
 		$models = array();
-			
+
 		foreach ($rows as $row) {
 			$models[] = $this->load($row->$primary);
 		}

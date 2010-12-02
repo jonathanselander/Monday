@@ -131,7 +131,7 @@ class Monday_Model implements Iterator
 	public function current()
 	{
 		// Använd getter för att ha stöd för overrides
-		$getter = 'get' . self::fieldToFunction($this->key());
+		$getter = 'get' . self::fieldToFunction($this->key(), false);
 		
 		return $this->$getter();
 	}
@@ -181,7 +181,7 @@ class Monday_Model implements Iterator
 		// Använd setters för att inkludera egna setters
 		foreach ($values as $key => $val) {
 			try {
-				$setter = 'set' . self::fieldToFunction($key);
+				$setter = 'set' . self::fieldToFunction($key, false);
 				$this->$setter($val);
 			} catch (Monday_Model_SetException $e) {
 				$errors[$key] = $e->getMessage();
@@ -262,5 +262,13 @@ class Monday_Model implements Iterator
 		$this->setValues($values);
 		
 		return $this;
+	}
+
+	/**
+	 * Hämta samtliga värden som en array, behövs i vissa lägen
+	 */
+	public function getAllValues()
+	{
+		return $this->_values;
 	}
 }

@@ -9,7 +9,10 @@ class Monday
 	private static $_namespace = 'Monday';
 	
 	// Mappad med 'klassnamn' => $objekt
-	private static $_singletonCache = array();
+	private static $_singletonCache = array(
+		'mapper' => array(),
+		'service' => array(),
+	);
 
 	public static function setNamespace($ns)
 	{
@@ -21,7 +24,7 @@ class Monday
 		return self::$_namespace;
 	}
 	
-	public static function load($class, $namespace = null)
+	public static function load($class, $namespace = null, $options = null)
 	{
 		if (empty($namespace)) {
 			$namespace = self::getNamespace(); 
@@ -31,14 +34,14 @@ class Monday
 		$className = $namespace . "_$class";
 
 		$path = str_replace('_', '/', $className);
-		
+
 		@include_once "$path.php";
-		
+
 		if (!@class_exists($className)) {
 			throw new Exception('Incorrect class');
 		}
 
-		return new $className;
+		return new $className($options);
 	}
 	
 	public static function model($class, $namespace = null)
@@ -58,15 +61,21 @@ class Monday
 	public static function table($class, $namespace = null)
 	{
 		try {
-			$className = "Db_Table_$class";
+			$className = "Db_Table_" . Monday_Model::fieldToFunction($class);
 			$table = self::load($className, $namespace);
 		} catch (Exception $e) {
 			$tableName = strtolower($class);
-			$tableClass = self::getNamespace() . '_Db_Table';
-			$table = new $tableClass(array(
+			$tableOptions = array(
 				Zend_Db_Table_Abstract::NAME => $tableName,
 				Zend_Db_Table_Abstract::PRIMARY => 'id'
-			));
+			);
+
+			try {
+				$table = self::load('Db_Table', self::getNamespace(),
+					$tableOptions);
+			} catch (Exception $e) {
+				$table = new Monday_Db_Table($tableOptions);
+			}
 		}
 				
 		return $table;
@@ -77,7 +86,7 @@ class Monday
 		$class = ucfirst($class);
 	
 		$model = self::model($class, $namespace);
-		
+
 		if (!$model->canMap()) {
 			throw new Exception("Model '$class' doesn't allow mapping");
 		}
@@ -86,7 +95,6 @@ class Monday
 		try {
 			$className = "Model_Mapper_" . Monday_Model::fieldToFunction($class);
 			
-			#echo "$className<br>";
 			$mapper = self::load($className, $namespace);
 		} catch (Exception $e) {
 			$mapper = new Monday_Model_Mapper;
@@ -102,16 +110,36 @@ class Monday
 				$mapper->setTable($table);
 			}
 		}
-		
+
 		return $mapper;
+	}
+
+	public static function service($class, $namespace = null)
+	{
+		$class = ucfirst($class);
+
+		// Generella services finns inte, men ibland vill vi cacha
+		$className = "Service_" . Monday_Model::fieldToFunction($class);
+		$service = self::load($className, $namespace);
+
+		return $service;
 	}
 	
 	public static function mapperSingleton($class, $namespace = null)
 	{
-		if (!isset(self::$_singletonCache[$class])) {
-			self::$_singletonCache[$class] = self::mapper($class, $namespace);
+		if (!isset(self::$_singletonCache['mapper'][$class])) {
+			self::$_singletonCache['mapper'][$class] = self::mapper($class, $namespace);
 		}
 		
-		return self::$_singletonCache[$class];
+		return self::$_singletonCache['mapper'][$class];
+	}
+
+	public static function serviceSingleton($class, $namespace = null)
+	{
+		if (!isset(self::$_singletonCache['service'][$class])) {
+			self::$_singletonCache['service'][$class] = self::mapper($class, $namespace);
+		}
+
+		return self::$_singletonCache['service'][$class];
 	}
 }
