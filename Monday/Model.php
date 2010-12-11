@@ -271,4 +271,9 @@ class Monday_Model implements Iterator
 	{
 		return $this->_values;
 	}
+
+	public function toArray()
+	{
+		return $this->getAllValues();
+	}
 }

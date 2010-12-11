@@ -1,22 +1,16 @@
 <?php
 
-class Monday_Model_Mapper implements Zend_Acl_Resource_Interface
+class Monday_Model_Mapper
 {
 	protected $_modelName;
 	protected $_table;
-	protected $_aclResourceId;
-	private static $_acl;
 	
 	// TODO: Hårdkodade fält som *måste* vara satta vid save()
 	protected $_fieldsRequired = array();
 	
-	public function __construct()
+	public final function __construct()
 	{
 		$this->_init();
-
-		if (($acl = self::getAcl()) !== null) {
-			$this->_setupAcl($acl);
-		}
 	}
 	
 	public function __call($function, $args)
@@ -29,37 +23,13 @@ class Monday_Model_Mapper implements Zend_Acl_Resource_Interface
 				break;
 		}
 		
-		throw new Exception('Incorrect function call');
+		throw new Exception("Incorrect function call '$function'", 400);
 	}
 		
 	protected function _init()
 	{
 		// Implementeras av subklass
 	}
-	
-	public static function setAcl(Zend_Acl $acl)
-	{
-		self::$_acl = $acl;
-	}
-
-	public static function getAcl()
-	{
-		return self::$_acl;
-	}
-
-	protected function _setupAcl(Zend_Acl $acl)
-	{
-		// Implementera av subklass, ställer in rättigheter helt enkelt.
-		// Cacha? most likely, men inget krav
-	}
-
-	public function getResourceId()
-    {
-		if (empty($this->_aclResourceId)) {
-			throw new Monday_Exception('ACL not implemented for mapper');
-		}
-        return $this->_aclResourceId;
-    }
 
 	protected function _fetchSpecificField($field, $args)
 	{
@@ -167,7 +137,7 @@ class Monday_Model_Mapper implements Zend_Acl_Resource_Interface
 			
 		if (!$row) {
 			$info = $table->info();
-			throw new Exception("No row with id '$id' in table '" . $info['name'] . "'");
+			throw new Exception("No row with id '$id' in table '" . $info['name'] . "'", 404);
 		}
 		
 		$values = $row->toArray();
